@@ -1,0 +1,29 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="appmeteo.MainWindow"
+        Title="Application Météo"
+        Width="800"
+        Height="450">
+
+   <Window.Resources>
+        <LinearGradientBrush x:Key="GradientBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Offset="0" Color="#FF0000"/>
+            <GradientStop Offset="1" Color="#0000FF"/>
+        </LinearGradientBrush>
+    </Window.Resources>
+    <Grid Background="{StaticResource GradientBrush}">
+
+        <DockPanel>
+            <TabControl Name="Tabs" DockPanel.Dock="Top">
+                <TabItem Header="Recherche">
+                    <StackPanel>
+                        <TextBox Name="CityTextBox" Watermark="Entrez une ville" Margin="10"/>
+                        <Button Name="SearchButton" Content="Rechercher" Margin="10"/>
+                        <TextBlock Name="WeatherResultText" Margin="10"/>
+                    </StackPanel>
+                </TabItem>
+            </TabControl>
+        </DockPanel>
+
+    </Grid>
+</Window>
