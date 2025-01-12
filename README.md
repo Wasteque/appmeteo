@@ -14,6 +14,7 @@ Cette application météo, développée en C# avec .NET et Avalonia, utilise l'A
 - Température en °C.
 - Description succincte du temps (ex. : ciel dégagé).
 - Humidité.
+- Prevision meteo.
 ---
 
 ## Prérequis

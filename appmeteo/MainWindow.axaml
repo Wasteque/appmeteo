@@ -19,7 +19,13 @@
                     <StackPanel>
                         <TextBox Name="CityTextBox" Watermark="Entrez une ville" Margin="10"/>
                         <Button Name="SearchButton" Content="Rechercher" Margin="10"/>
+                        <Button Name="ToggleRgbButton" Content="Activer/Désactiver RGB" Margin="10"/>
                         <TextBlock Name="WeatherResultText" Margin="10"/>
+                    </StackPanel>
+                </TabItem>
+                <TabItem Header="Prévision">
+                    <StackPanel>
+                        <TextBlock Name="ForecastResultText" Margin="10"/>
                     </StackPanel>
                 </TabItem>
             </TabControl>

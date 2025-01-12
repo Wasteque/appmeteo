@@ -15,14 +15,16 @@ namespace appmeteo
     {
         private TextBox cityTextBox;
         private Button searchButton;
+        private Button toggleRgbButton;
         private TextBlock weatherResultText;
+        private TextBlock forecastResultText;
         private TabControl tabs;
 
-        
         private GradientStop gradientStop1;
         private GradientStop gradientStop2;
         private LinearGradientBrush backgroundGradientBrush;
         private DispatcherTimer animationTimer;
+        private bool isRgbActive = true;
         private double hue1 = 0;
         private double hue2 = 100;
 
@@ -33,12 +35,15 @@ namespace appmeteo
 
             cityTextBox = this.FindControl<TextBox>("CityTextBox");
             searchButton = this.FindControl<Button>("SearchButton");
+            toggleRgbButton = this.FindControl<Button>("ToggleRgbButton");
             weatherResultText = this.FindControl<TextBlock>("WeatherResultText");
+            forecastResultText = this.FindControl<TextBlock>("ForecastResultText");
             tabs = this.FindControl<TabControl>("Tabs");
 
             searchButton.Click += async (sender, e) => await SearchWeatherAsync();
+            toggleRgbButton.Click += ToggleRgbEffect;
 
-           backgroundGradientBrush = (LinearGradientBrush)this.Resources["GradientBrush"];
+            backgroundGradientBrush = (LinearGradientBrush)this.Resources["GradientBrush"];
             gradientStop1 = backgroundGradientBrush.GradientStops[0];
             gradientStop2 = backgroundGradientBrush.GradientStops[1];
 
@@ -50,18 +55,90 @@ namespace appmeteo
             animationTimer.Start();
         }
 
-        private void InitializeComponent()
+        private async Task SearchWeatherAsync()
         {
-            AvaloniaXamlLoader.Load(this);
+            string city = cityTextBox.Text;
+
+            if (string.IsNullOrWhiteSpace(city))
+            {
+                weatherResultText.Text = "Veuillez entrer une ville valide.";
+                forecastResultText.Text = "";
+                return;
+            }
+
+            try
+            {
+                string apiKey = File.ReadAllText("api_key.txt");
+                string currentWeatherUrl = $"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={apiKey}&units=metric&lang=fr";
+                string forecastUrl = $"https://api.openweathermap.org/data/2.5/forecast?q={city}&appid={apiKey}&units=metric&lang=fr";
+
+                using (HttpClient client = new HttpClient())
+                {
+                    HttpResponseMessage currentWeatherResponse = await client.GetAsync(currentWeatherUrl);
+                    currentWeatherResponse.EnsureSuccessStatusCode();
+
+                    string currentWeatherBody = await currentWeatherResponse.Content.ReadAsStringAsync();
+                    JObject currentWeatherData = JObject.Parse(currentWeatherBody);
+
+                    string description = currentWeatherData["weather"][0]["description"].ToString();
+                    string temperature = currentWeatherData["main"]["temp"].ToString();
+                    string humidity = currentWeatherData["main"]["humidity"].ToString();
+
+                    weatherResultText.Text = $"Météo : {description}\nTempérature : {temperature} °C\nHumidité : {humidity}%";
+
+                    HttpResponseMessage forecastResponse = await client.GetAsync(forecastUrl);
+                    forecastResponse.EnsureSuccessStatusCode();
+
+                    string forecastBody = await forecastResponse.Content.ReadAsStringAsync();
+                    JObject forecastData = JObject.Parse(forecastBody);
+
+                    forecastResultText.Text = "Prévisions sur 5 jours :\n";
+
+                    for (int i = 0; i < 5; i++)
+                    {
+                        var forecast = forecastData["list"][i * 8]; 
+                        string date = forecast["dt_txt"].ToString();
+                        string temp = forecast["main"]["temp"].ToString();
+                        string desc = forecast["weather"][0]["description"].ToString();
+
+                        forecastResultText.Text += $"- {date}: {desc}, {temp} °C\n";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                weatherResultText.Text = $"Erreur : {ex.Message}";
+                forecastResultText.Text = "";
+            }
         }
 
-         
+        private void ToggleRgbEffect(object sender, EventArgs e)
+        {
+            isRgbActive = !isRgbActive;
+
+            if (isRgbActive)
+            {
+                animationTimer.Start();
+            }
+            else
+            {
+                animationTimer.Stop();
+                ResetGradientToDefault();
+            }
+        }
+
+        private void ResetGradientToDefault()
+        {
+            gradientStop1.Color = Color.Parse("#FFFFFF");
+            gradientStop2.Color = Color.Parse("#FFFFFF");
+        }
+
         private void AnimateGradient(object sender, EventArgs e)
         {
-            backgroundGradientBrush.EndPoint = new RelativePoint((double)this.ClientSize.Width, (double)this.ClientSize.Height, RelativeUnit.Absolute);
+            if (!isRgbActive) return;
+
             gradientStop1.Color = ColorFromHue(hue1);
             gradientStop2.Color = ColorFromHue(hue2);
-            gradientStop2.Offset = Math.Max((double)this.ClientSize.Width, (double)this.ClientSize.Height);
             hue1 = (hue1 + 1) % 360;
             hue2 = (hue2 + 1) % 360;
 
@@ -85,44 +162,5 @@ namespace appmeteo
             else
                 return Color.FromRgb(255, 0, (byte)((360 - hue) * 255 / 60));
         }
-
-
-        private async Task SearchWeatherAsync()
-        {
-            string city = cityTextBox.Text;
-
-            if (string.IsNullOrWhiteSpace(city))
-            {
-                weatherResultText.Text = "Veuillez entrer une ville valide.";
-                return;
-            }
-
-            try
-            {
-                string apiKey = File.ReadAllText("api_key.txt");
-                string apiUrl = $"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={apiKey}&units=metric&lang=fr";
-
-                using (HttpClient client = new HttpClient())
-                {
-                    HttpResponseMessage response = await client.GetAsync(apiUrl);
-                    response.EnsureSuccessStatusCode();
-
-                    string responseBody = await response.Content.ReadAsStringAsync();
-                    JObject weatherData = JObject.Parse(responseBody);
-
-                    string description = weatherData["weather"][0]["description"].ToString();
-                    string temperature = weatherData["main"]["temp"].ToString();
-                    string humidity = weatherData["main"]["humidity"].ToString();
-
-                    weatherResultText.Text = $"Météo : {description}\nTempérature : {temperature} °C\nHumidité : {humidity}%";
-                }
-            }
-            catch (Exception ex)
-            {
-                weatherResultText.Text = $"Erreur : {ex.Message}";
-            }
-        }
     }
 }
-
-
